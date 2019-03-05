@@ -3,12 +3,13 @@ package query
 import (
 	"context"
 	"fmt"
-	"github.com/influxdata/influxdb/kit/tracing"
-	"github.com/opentracing/opentracing-go"
 	"io"
 	"time"
 
 	"github.com/influxdata/flux"
+	"github.com/opentracing/opentracing-go"
+
+	"github.com/influxdata/influxdb/kit/tracing"
 )
 
 // LoggingServiceBridge implements ProxyQueryService and logs the queries while consuming a QueryService interface.

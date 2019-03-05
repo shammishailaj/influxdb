@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/influxdata/influxdb/kit/tracing"
-	"github.com/opentracing/opentracing-go"
 	"net/http"
 
 	"github.com/influxdata/flux"
 	"github.com/influxdata/flux/csv"
-	icontext "github.com/influxdata/influxdb/context"
-	"github.com/influxdata/influxdb/query"
 	"github.com/julienschmidt/httprouter"
+	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+
+	icontext "github.com/influxdata/influxdb/context"
+	"github.com/influxdata/influxdb/kit/tracing"
+	"github.com/influxdata/influxdb/query"
 )
 
 const (

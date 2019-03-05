@@ -3,13 +3,14 @@ package query
 import (
 	"context"
 	"encoding/json"
-	"github.com/influxdata/influxdb/kit/tracing"
-	"github.com/opentracing/opentracing-go"
 	"io"
 	"net/http"
 
 	"github.com/influxdata/flux"
+	"github.com/opentracing/opentracing-go"
+
 	platform "github.com/influxdata/influxdb"
+	"github.com/influxdata/influxdb/kit/tracing"
 )
 
 // QueryServiceBridge implements the QueryService interface while consuming the AsyncQueryService interface.
