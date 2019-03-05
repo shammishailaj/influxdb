@@ -10,6 +10,7 @@ import (
 
 	"github.com/influxdata/flux"
 	"github.com/influxdata/flux/semantic"
+	"github.com/influxdata/influxdb/internal/ptrutil"
 	cron "gopkg.in/robfig/cron.v2"
 )
 
@@ -79,7 +80,7 @@ func FromScript(script string) (Options, error) {
 			return opt, nil
 		}
 	}
-	opt := Options{Retry: int64Ptr(1), Concurrency: int64Ptr(1)}
+	opt := Options{Retry: ptrutil.Int64Ptr(1), Concurrency: ptrutil.Int64Ptr(1)}
 
 	_, scope, err := flux.Eval(script)
 	if err != nil {
@@ -129,21 +130,21 @@ func FromScript(script string) (Options, error) {
 		if err := checkNature(offsetVal.PolyType().Nature(), semantic.Duration); err != nil {
 			return opt, err
 		}
-		opt.Offset = durationPtr(offsetVal.Duration().Duration())
+		opt.Offset = ptrutil.DurationPtr(offsetVal.Duration().Duration())
 	}
 
 	if concurrencyVal, ok := optObject.Get("concurrency"); ok {
 		if err := checkNature(concurrencyVal.PolyType().Nature(), semantic.Int); err != nil {
 			return opt, err
 		}
-		opt.Concurrency = int64Ptr(concurrencyVal.Int())
+		opt.Concurrency = ptrutil.Int64Ptr(concurrencyVal.Int())
 	}
 
 	if retryVal, ok := optObject.Get("retry"); ok {
 		if err := checkNature(retryVal.PolyType().Nature(), semantic.Int); err != nil {
 			return opt, err
 		}
-		opt.Retry = int64Ptr(retryVal.Int())
+		opt.Retry = ptrutil.Int64Ptr(retryVal.Int())
 	}
 
 	if err := opt.Validate(); err != nil {
@@ -188,17 +189,17 @@ func (o *Options) Validate() error {
 		// For now, allowing negative offset delays. Maybe they're useful for forecasting?
 		errs = append(errs, "offset option must be expressible as whole seconds")
 	}
-	if o.Concurrency != nil{
-	if  *o.Concurrency < 1 {
-		errs = append(errs, "concurrency must be at least 1")
-	} else if *o.Concurrency > maxConcurrency {
-		errs = append(errs, fmt.Sprintf("concurrency exceeded max of %d", maxConcurrency))
+	if o.Concurrency != nil {
+		if *o.Concurrency < 1 {
+			errs = append(errs, "concurrency must be at least 1")
+		} else if *o.Concurrency > maxConcurrency {
+			errs = append(errs, fmt.Sprintf("concurrency exceeded max of %d", maxConcurrency))
+		}
 	}
-}
 	if o.Retry != nil {
 		if *o.Retry < 1 {
 			errs = append(errs, "retry must be at least 1")
-		} else *o.Retry > maxRetry {
+		} else if *o.Retry > maxRetry {
 			errs = append(errs, fmt.Sprintf("retry exceeded max of %d", maxRetry))
 		}
 	}
@@ -216,10 +217,10 @@ func (o *Options) Validate() error {
 // Otherwise, the empty string is returned.
 // The value of the offset option is not considered.
 func (o *Options) EffectiveCronString() string {
-	if o.Cron != nil && *o.Cron != "" {
-		return *o.Cron
+	if o.Cron != "" {
+		return o.Cron
 	}
-	if o.Every != nil && *o.Every > 0 {
+	if o.Every > 0 {
 		return "@every " + o.Every.String()
 	}
 	return ""
@@ -231,16 +232,4 @@ func checkNature(got, exp semantic.Nature) error {
 		return fmt.Errorf("unexpected kind: got %q expected %q", got, exp)
 	}
 	return nil
-}
-
-func strPtr(s string) *string {
-	return &s
-}
-
-func int64Ptr(i int64) *int64 {
-	return &i
-}
-
-func durationPtr(d time.Duration) *time.Duration {
-	return &d
 }
