@@ -125,7 +125,7 @@ func (s *ProxyQueryService) Query(ctx context.Context, w io.Writer, req *query.P
 	}
 	n, err := io.Copy(w, resp.Body)
 	if err != nil {
-		return 0, tracing.LogError(span, err)
+		return n, tracing.LogError(span, err)
 	}
 
 	return n, nil

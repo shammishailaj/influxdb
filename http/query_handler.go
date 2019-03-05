@@ -370,7 +370,7 @@ func (s *FluxService) Query(ctx context.Context, w io.Writer, r *query.ProxyRequ
 	}
 	n, err := io.Copy(w, resp.Body)
 	if err != nil {
-		return 0, tracing.LogError(span, err)
+		return n, tracing.LogError(span, err)
 	}
 
 	return n, nil

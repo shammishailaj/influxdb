@@ -68,7 +68,7 @@ func (s *SourceProxyQueryService) queryFlux(ctx context.Context, w io.Writer, re
 	}
 	n, err := io.Copy(w, resp.Body)
 	if err != nil {
-		return 0, tracing.LogError(span, err)
+		return n, tracing.LogError(span, err)
 	}
 
 	return n, nil
@@ -115,7 +115,7 @@ func (s *SourceProxyQueryService) queryInfluxQL(ctx context.Context, w io.Writer
 	}
 	n, err := io.Copy(w, resp.Body)
 	if err != nil {
-		return 0, tracing.LogError(span, err)
+		return n, tracing.LogError(span, err)
 	}
 
 	return n, nil
