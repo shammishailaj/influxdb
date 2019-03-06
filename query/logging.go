@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/influxdata/flux"
-	"github.com/opentracing/opentracing-go"
 
 	"github.com/influxdata/influxdb/kit/tracing"
 )
@@ -20,7 +19,7 @@ type LoggingServiceBridge struct {
 
 // Query executes and logs the query.
 func (s *LoggingServiceBridge) Query(ctx context.Context, w io.Writer, req *ProxyRequest) (n int64, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "LoggingServiceBridge.Query")
+	span, ctx := tracing.StartSpanFromContext(ctx)
 	defer span.Finish()
 
 	var stats flux.Statistics

@@ -9,7 +9,6 @@ import (
 	"github.com/influxdata/flux"
 	"github.com/influxdata/flux/csv"
 	"github.com/julienschmidt/httprouter"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
@@ -150,7 +149,7 @@ func (s *QueryService) Ping(ctx context.Context) error {
 
 // Query calls the query route with the requested query and returns a result iterator.
 func (s *QueryService) Query(ctx context.Context, req *query.Request) (flux.ResultIterator, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "QueryService.Query")
+	span, ctx := tracing.StartSpanFromContext(ctx)
 	defer span.Finish()
 
 	u, err := newURL(s.Addr, queryPath)

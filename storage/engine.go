@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/influxdata/influxql"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
 	platform "github.com/influxdata/influxdb"
+	"github.com/influxdata/influxdb/kit/tracing"
 	"github.com/influxdata/influxdb/logger"
 	"github.com/influxdata/influxdb/models"
 	"github.com/influxdata/influxdb/storage/wal"
@@ -189,7 +189,7 @@ func (e *Engine) Open(ctx context.Context) (err error) {
 		return nil // Already open
 	}
 
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Engine.Open")
+	span, ctx := tracing.StartSpanFromContext(ctx)
 	defer span.Finish()
 
 	// Open the services in order and clean up if any fail.
@@ -359,7 +359,7 @@ func (e *Engine) CreateCursorIterator(ctx context.Context) (tsdb.CursorIterator,
 // WritePoints will however determine if there are any field type conflicts, and
 // return an appropriate error in that case.
 func (e *Engine) WritePoints(ctx context.Context, points []models.Point) error {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "Engine.WritePoints")
+	span, ctx := tracing.StartSpanFromContext(ctx)
 	defer span.Finish()
 
 	collection, j := tsdb.NewSeriesCollection(points), 0
@@ -424,7 +424,7 @@ func (e *Engine) WritePoints(ctx context.Context, points []models.Point) error {
 
 // writePointsLocked does the work of writing points and must be called under some sort of lock.
 func (e *Engine) writePointsLocked(ctx context.Context, collection *tsdb.SeriesCollection, values map[string][]value.Value) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "Engine.writePointsLocked")
+	span, _ := tracing.StartSpanFromContext(ctx)
 	defer span.Finish()
 
 	// TODO(jeff): keep track of the values in the collection so that partial write
@@ -457,7 +457,7 @@ func (e *Engine) writePointsLocked(ctx context.Context, collection *tsdb.SeriesC
 // AcquireSegments closes the current WAL segment, gets the set of all the currently closed
 // segments, and calls the callback. It does all of this under the lock on the engine.
 func (e *Engine) AcquireSegments(ctx context.Context, fn func(segs []string) error) error {
-	span, _ := opentracing.StartSpanFromContext(ctx, "Engine.AcquireSegments")
+	span, _ := tracing.StartSpanFromContext(ctx)
 	defer span.Finish()
 
 	e.mu.Lock()

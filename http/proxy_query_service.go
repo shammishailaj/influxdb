@@ -10,7 +10,6 @@ import (
 
 	"github.com/influxdata/flux"
 	"github.com/julienschmidt/httprouter"
-	"github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 
@@ -94,7 +93,7 @@ type ProxyQueryService struct {
 }
 
 func (s *ProxyQueryService) Query(ctx context.Context, w io.Writer, req *query.ProxyRequest) (int64, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "ProxyQueryService.Query")
+	span, ctx := tracing.StartSpanFromContext(ctx)
 	defer span.Finish()
 
 	u, err := newURL(s.Addr, proxyQueryPath)

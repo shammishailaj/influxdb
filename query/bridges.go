@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/influxdata/flux"
-	"github.com/opentracing/opentracing-go"
 
 	platform "github.com/influxdata/influxdb"
 	"github.com/influxdata/influxdb/kit/tracing"
@@ -32,7 +31,7 @@ type ProxyQueryServiceBridge struct {
 }
 
 func (b ProxyQueryServiceBridge) Query(ctx context.Context, w io.Writer, req *ProxyRequest) (int64, error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "ProxyQueryServiceBridge.Query")
+	span, ctx := tracing.StartSpanFromContext(ctx)
 	defer span.Finish()
 
 	results, err := b.QueryService.Query(ctx, &req.Request)
