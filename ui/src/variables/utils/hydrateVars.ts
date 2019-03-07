@@ -32,8 +32,6 @@ interface HydrateVarsOptions {
   fetcher: ValueFetcher
 }
 
-const invalidateCycles = (graph: VariableNode[]): void => {}
-
 export const createVariableGraph = (
   variables: Variable[],
   allVariables: Variable[]
@@ -73,30 +71,79 @@ export const createVariableGraph = (
       node.parents.some(parent => variables.includes(parent.variable))
   )
 
-  invalidateCycles(relevantSubGraph)
-
   return relevantSubGraph
 }
 
-const errorVariableValues = (): VariableValues => ({
+/*
+  Get the `VariableValues` for a variable that cannot be successfully hydrated.
+*/
+const errorVariableValues = (
+  message = 'Failed to load values for variable'
+): VariableValues => ({
   values: null,
   selectedValue: null,
   valueType: null,
-  error: 'Failed to load values for variable',
+  error: message,
 })
 
+/*
+  Get the `VariableValues` for a map variable.
+*/
 const mapVariableValues = (
   variable: Variable,
   prevSelection: string,
   defaultSelection: string
-): VariableValues => ({})
+): VariableValues => {
+  let selectedValue
 
+  const {values} = variable.arguments
+
+  if (values[prevSelection] !== undefined) {
+    selectedValue = values[prevSelection]
+  } else if (values[defaultSelection] !== undefined) {
+    selectedValue = values[defaultSelection]
+  } else {
+    selectedValue = Object.values(values)[0]
+  }
+
+  return {
+    valueType: 'string',
+    values: Object.values(values),
+    selectedValue,
+  }
+}
+
+/*
+  Get the `VariableValues` for a constant variable.
+*/
 const constVariableValues = (
   variable: Variable,
   prevSelection: string,
   defaultSelection: string
-): VariableValues => ({})
+): VariableValues => {
+  let selectedValue
 
+  const {values} = variable.arguments
+
+  if (values.includes(prevSelection)) {
+    selectedValue = prevSelection
+  } else if (values.includes(defaultSelection)) {
+    selectedValue = defaultSelection
+  } else {
+    selectedValue = values[0]
+  }
+
+  return {
+    valueType: 'string',
+    values,
+    selectedValue,
+  }
+}
+
+/*
+  Given a node, find all of it's children, and all the children of those
+  children... and so on.
+*/
 const collectDescendants = (node: VariableNode, acc = []): VariableNode[] => {
   for (const child of node.children) {
     acc.push(child)
@@ -106,6 +153,11 @@ const collectDescendants = (node: VariableNode, acc = []): VariableNode[] => {
   return acc
 }
 
+/*
+  Hydrate the values of a single node in the graph.
+
+  This assumes that every descendant of this node has already been hydrated. 
+*/
 const hydrateVarsHelper = async (
   node: VariableNode,
   options: HydrateVarsOptions
@@ -119,7 +171,6 @@ const hydrateVarsHelper = async (
   const prevSelection = options.selections[node.variable.id]
 
   if (variableType === 'map') {
-    // TODO: Build VariableValues from constant/map variable data
     return mapVariableValues(node.variable, prevSelection, defaultSelection)
   }
 
@@ -150,6 +201,9 @@ const hydrateVarsHelper = async (
   return values
 }
 
+/*
+  Check if every child of a node has been resolved (successfully or not).
+*/
 const hasResolvedChildren = (parent: VariableNode): boolean =>
   parent.children.every(
     child =>
@@ -157,8 +211,47 @@ const hasResolvedChildren = (parent: VariableNode): boolean =>
       child.status === RemoteDataState.Error
   )
 
+/*
+  Find all nodes in the graph that have no children.
+*/
 const findLeaves = (graph: VariableNode[]): VariableNode[] =>
   graph.filter(node => node.children.length === 0)
+
+/*
+  Given a node, attempt to find a cycle that the node is a part of. If no cycle
+  is found, return `null`.
+*/
+const findCycle = (node: VariableNode, seen = []): VariableNode[] => {
+  if (seen.includes(node)) {
+    throw seen
+  }
+
+  for (const child of node.children) {
+    try {
+      findCycle(child, [...seen, node])
+    } catch (cycle) {
+      return cycle
+    }
+  }
+
+  return null
+}
+
+/*
+  Find all cycles within the variable graph and mark every node within a cycle
+  as errored (we cannot resolve cycles).
+*/
+const invalidateCycles = (graph: VariableNode[]): void => {
+  for (const node of graph) {
+    const cycle = findCycle(node)
+
+    if (cycle) {
+      for (const invalidNode of cycle) {
+        invalidNode.status === RemoteDataState.NotStarted
+      }
+    }
+  }
+}
 
 /*
   Given a list of `variables`, execute their queries to retrieve the possible
@@ -172,6 +265,8 @@ export const hydrateVars = (
   options: HydrateVarsOptions
 ): {cancel: () => void; promise: Promise<VariableValuesByID>} => {
   const graph = createVariableGraph(variables, allVariables)
+
+  invalidateCycles(graph)
 
   let isCancelled = false
 
@@ -192,8 +287,7 @@ export const hydrateVars = (
         return
       }
 
-      // TODO: Handle cancellation
-      // TODO: Handle other errors / mark every other node with a path to this node as an error and resolve
+      // TODO: Mark every node in a path to this node as errored
     }
   }
 
